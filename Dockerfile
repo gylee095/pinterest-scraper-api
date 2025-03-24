@@ -2,6 +2,10 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
+# Playwright가 설치된 브라우저를 런타임에 직접 참조하도록 설정
+ENV PLAYWRIGHT_BROWSERS_PATH=0
+
+# 시스템 의존성 설치
 RUN apt-get update && apt-get install -y \
     wget curl unzip fonts-liberation libnss3 libatk1.0-0 libatk-bridge2.0-0 \
     libcups2 libxcomposite1 libxrandr2 libgbm1 libpango-1.0-0 libpangocairo-1.0-0 \
@@ -11,7 +15,7 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# ✅ 명시적으로 chromium만 설치 (중요!)
+# ✅ 브라우저 직접 설치 (Playwright가 사용하는 실행 경로 내부에)
 RUN playwright install chromium
 
 COPY . .
