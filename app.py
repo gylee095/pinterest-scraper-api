@@ -1,4 +1,3 @@
-import os
 from flask import Flask, request, jsonify
 from playwright.sync_api import sync_playwright
 
@@ -43,6 +42,4 @@ def fix_image_url(url: str) -> str:
 
 
 if __name__ == "__main__":
-    # Render 환경에서 자동으로 주어지는 포트 사용
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=8080)
