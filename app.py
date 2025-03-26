@@ -5,38 +5,39 @@ app = Flask(__name__)
 
 @app.route("/scrape", methods=["POST"])
 def scrape():
-    keyword = request.json.get("keyword", "")
-    if not keyword:
-        return jsonify({"error": "keyword is required"}), 400
+    try:
+        keyword = request.json.get("keyword", "")
+        if not keyword:
+            return jsonify({"error": "keyword is required"}), 400
 
-    search_url = f"https://www.pinterest.com/search/pins/?q={keyword}"
-    image_urls = []
+        search_url = f"https://www.pinterest.com/search/pins/?q={keyword}"
+        image_urls = []
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        page.goto(search_url, timeout=60000)
-        page.mouse.wheel(0, 3000)
-        page.wait_for_timeout(3000)
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
+            page = browser.new_page()
+            page.goto(search_url, timeout=15000)
+            page.wait_for_timeout(1000)  # 기다림 최소
 
-        images = page.query_selector_all("img")
-        for img in images:
-            src = img.get_attribute("src")
-            if src and "pinimg.com" in src:
-                fixed = fix_image_url(src)
-                image_urls.append(fixed)
-            if len(image_urls) >= 10:
-                break
+            images = page.query_selector_all("img")
+            for img in images:
+                src = img.get_attribute("src")
+                if src and "pinimg.com" in src:
+                    image_urls.append(fix_image_url(src))
+                if len(image_urls) >= 5:
+                    break
 
-        browser.close()
+            browser.close()
 
-    return jsonify({
-    "status": "ok",
-    "data": {
-        "images": image_urls
-    }
-})
+        return jsonify({
+            "status": "ok",
+            "data": {
+                "images": image_urls
+            }
+        })
 
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 def fix_image_url(url: str) -> str:
