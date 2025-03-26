@@ -30,7 +30,13 @@ def scrape():
 
         browser.close()
 
-    return jsonify({"images": image_urls})
+    return jsonify({
+    "status": "ok",
+    "data": {
+        "images": image_urls
+    }
+})
+
 
 
 def fix_image_url(url: str) -> str:
