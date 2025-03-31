@@ -8,7 +8,10 @@ def scrape():
     try:
         keyword = request.json.get("keyword", "")
         if not keyword:
-            return jsonify({"error": "keyword is required"}), 400
+            return jsonify({
+                "status": "error",
+                "message": "keyword is required"
+            }), 400
 
         search_url = f"https://www.pinterest.com/search/pins/?q={keyword}"
         image_urls = []
@@ -17,7 +20,7 @@ def scrape():
             browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
             page = browser.new_page()
             page.goto(search_url, timeout=15000)
-            page.wait_for_timeout(1000)  # 기다림 최소
+            page.wait_for_timeout(1000)
 
             images = page.query_selector_all("img")
             for img in images:
@@ -34,10 +37,13 @@ def scrape():
             "data": {
                 "images": image_urls
             }
-        })
+        }), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
 
 
 def fix_image_url(url: str) -> str:
