@@ -38,7 +38,12 @@ def scrape():
             page = browser.new_page()
             page.route("**/*", block_resources)  # ✅ 리소스 차단 훅 등록
             page.goto(search_url, timeout=15000)
-            page.wait_for_selector("img", timeout=8000)  # ✅ 이미지 로딩 대기
+
+            # ✅ 이미지 로딩 기다리되, 실패해도 계속 진행
+            try:
+                page.wait_for_selector("img", timeout=8000)
+            except:
+                print("⚠️ img selector wait timeout – 바로 스크랩 시도함")
 
             images = page.query_selector_all("img")
             for img in images:
