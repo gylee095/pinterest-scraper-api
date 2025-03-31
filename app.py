@@ -1,8 +1,15 @@
 from flask import Flask, request, jsonify
 from playwright.sync_api import sync_playwright
-import traceback  # ✅ 추가
+import traceback
 
 app = Flask(__name__)
+
+# ✅ 리소스 차단 함수 (CSS, JS, 폰트 차단)
+def block_resources(route, request):
+    if request.resource_type in ["stylesheet", "font", "script"]:
+        route.abort()
+    else:
+        route.continue_()
 
 @app.route("/scrape", methods=["POST"])
 def scrape():
@@ -18,17 +25,27 @@ def scrape():
         image_urls = []
 
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
+            browser = p.chromium.launch(
+                headless=True,
+                args=[
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--disable-extensions",
+                    "--disable-gpu",
+                    "--disable-setuid-sandbox"
+                ]
+            )
             page = browser.new_page()
+            page.route("**/*", block_resources)  # ✅ 리소스 차단 훅 등록
             page.goto(search_url, timeout=15000)
-            page.wait_for_timeout(1000)
+            page.wait_for_selector("img", timeout=5000)  # ✅ 이미지 로딩 대기
 
             images = page.query_selector_all("img")
             for img in images:
                 src = img.get_attribute("src")
                 if src and "pinimg.com" in src:
                     image_urls.append(fix_image_url(src))
-                if len(image_urls) >= 5:
+                if len(image_urls) >= 3:  # ✅ 이미지 수 줄이기
                     break
 
             browser.close()
@@ -41,13 +58,12 @@ def scrape():
         }), 200
 
     except Exception as e:
-        print("🛑 예외 발생:", e)           # ✅ 콘솔에 에러 메시지 출력
-        traceback.print_exc()              # ✅ 전체 스택 트레이스 출력
+        print("🛑 예외 발생:", e)
+        traceback.print_exc()
         return jsonify({
             "status": "error",
             "message": str(e)
         }), 500
-
 
 def fix_image_url(url: str) -> str:
     size_tokens = ["/60x60/", "/236x/", "/474x/", "/564x/", "/736x/"]
@@ -55,7 +71,6 @@ def fix_image_url(url: str) -> str:
         if token in url:
             return url.replace(token, "/originals/")
     return url
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
