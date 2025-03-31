@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from playwright.sync_api import sync_playwright
+import traceback  # ✅ 추가
 
 app = Flask(__name__)
 
@@ -40,6 +41,8 @@ def scrape():
         }), 200
 
     except Exception as e:
+        print("🛑 예외 발생:", e)           # ✅ 콘솔에 에러 메시지 출력
+        traceback.print_exc()              # ✅ 전체 스택 트레이스 출력
         return jsonify({
             "status": "error",
             "message": str(e)
